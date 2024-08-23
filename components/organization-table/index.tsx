@@ -2,7 +2,7 @@
 
 import type { Selection, SortDescriptor } from "@nextui-org/react";
 
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState, useMemo, useEffect } from "react";
 import {
   Table as NextUITable,
   TableHeader,
@@ -15,6 +15,7 @@ import {
 } from "@nextui-org/react";
 import sortOn from "sort-on";
 import { Marker } from "react-mark.js";
+import { toast } from "sonner";
 
 import { CreateOrganizationForm } from "../CreateOrganizationForm";
 
@@ -26,6 +27,8 @@ import {
 } from "./constants";
 import { TableTopContent } from "./component/TopConten";
 import { renderCellOrganizations } from "./renderCell";
+
+import { getOrganizationsClient } from "@/data/clientData";
 
 const INITIAL_VISIBLE_COLUMNS: NoInfer<ColumnKey>[] = [
   "name",
@@ -39,15 +42,15 @@ const INITIAL_VISIBLE_COLUMNS: NoInfer<ColumnKey>[] = [
   "updatedAt",
 ];
 
-export default function Table({
-  organizations,
-}: {
-  organizations: OrganizationsType;
-}) {
+export default function Table() {
   const [filterValue, setFilterValue] = useState("");
   const [visibleColumns, setVisibleColumns] = useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS),
   );
+
+  const [organizations, setOrganizations] =
+    useState<OrganizationsType | null>();
+  const [loading, setLoading] = useState(true);
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
 
   const [statusFilter, setStatusFilter] = useState<Selection>("all");
@@ -55,6 +58,14 @@ export default function Table({
     column: "createdAt",
     direction: "descending",
   });
+
+  useEffect(() => {
+    setLoading(true);
+    getOrganizationsClient()
+      .then((res) => setOrganizations(res))
+      .catch((err) => toast.error(err.toString()))
+      .finally(() => setLoading(false));
+  }, []);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -67,7 +78,7 @@ export default function Table({
   }, [visibleColumns]);
 
   const filteredItems = useMemo(() => {
-    let filteredOrganizations = [...organizations];
+    let filteredOrganizations = [...(organizations ?? [])];
 
     if (hasSearchFilter) {
       filteredOrganizations = filteredOrganizations.filter((org) =>
@@ -114,7 +125,7 @@ export default function Table({
   const topContent = useMemo(() => {
     return (
       <TableTopContent
-        count={organizations.length}
+        count={organizations?.length ?? 0}
         filterValue={filterValue}
         setStatusFilter={setStatusFilter}
         setVisibleColumns={setVisibleColumns}
@@ -131,7 +142,7 @@ export default function Table({
     visibleColumns,
     onSearchChange,
     onClear,
-    organizations.length,
+    organizations?.length,
     onOpen,
   ]);
 
@@ -178,6 +189,7 @@ export default function Table({
           </TableHeader>
           <TableBody
             emptyContent={"No organizations found"}
+            isLoading={loading}
             items={sortedItems}
             loadingContent={<Spinner color="primary" />}
           >
