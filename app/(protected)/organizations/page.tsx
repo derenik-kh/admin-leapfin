@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Spinner } from "@nextui-org/react";
 import { Suspense } from "react";
 
